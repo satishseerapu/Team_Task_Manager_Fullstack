@@ -3,18 +3,20 @@ import { useSelector } from 'react-redux';
 
 export function useDashboard() {
   const allProjectTasks = useSelector((state) => state.tasks.allProjectTasks);
+  const projects = useSelector((state) => state.projects.list);
   const loading = useSelector((state) => state.tasks.loading);
   const error = useSelector((state) => state.tasks.error);
 
   const stats = useMemo(() => {
     const now = new Date();
+    const projectNameMap = Object.fromEntries(projects.map((p) => [p._id, p.name]));
 
-    const statusCounts = allProjectTasks.reduce((acc, t) => {
-      acc[t.status] = (acc[t.status] ?? 0) + 1;
-      return acc;
-    }, {});
-    statusCounts.in_progress = statusCounts['In Progress'] ?? 0;
-    statusCounts.done = statusCounts['Done'] ?? 0;
+    const STATUS_KEY = { 'To Do': 'todo', 'In Progress': 'in_progress', 'Done': 'done' };
+    const statusCounts = { todo: 0, in_progress: 0, done: 0 };
+    allProjectTasks.forEach((t) => {
+      const key = STATUS_KEY[t.status] ?? t.status.toLowerCase().replace(/\s+/g, '_');
+      statusCounts[key] = (statusCounts[key] ?? 0) + 1;
+    });
 
     const overdueTasks = allProjectTasks.filter(
       (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== 'Done'
@@ -22,10 +24,13 @@ export function useDashboard() {
 
     const projectMap = {};
     allProjectTasks.forEach((t) => {
-      const name = t.project?.name ?? t.project ?? 'Unknown';
-      projectMap[name] = (projectMap[name] ?? 0) + 1;
+      const projectId = t.project?._id ?? t.project;
+      const name = t.project?.name ?? projectNameMap[projectId] ?? 'Unknown';
+      if (!projectMap[name]) projectMap[name] = { total: 0, done: 0 };
+      projectMap[name].total += 1;
+      if (t.status === 'Done') projectMap[name].done += 1;
     });
-    const projectStats = Object.entries(projectMap).map(([name, count]) => ({ name, count }));
+    const projectStats = Object.entries(projectMap).map(([name, { total, done }]) => ({ name, total, done }));
 
     return { totalTasks: allProjectTasks.length, statusCounts, overdueTasks, projectStats };
   }, [allProjectTasks]);

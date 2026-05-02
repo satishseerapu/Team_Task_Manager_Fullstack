@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import Input from '../components/ui/Input';
 
 export default function SignupPage() {
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', organizationName: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -38,16 +39,11 @@ export default function SignupPage() {
     try {
       const { confirmPassword, ...payload } = form;
       await signup(payload);
+      toast.show('Account created successfully!', 'success');
       navigate('/dashboard');
     } catch (err) {
       const msg = typeof err === 'string' ? err : (err?.message ?? 'Registration failed. Please try again.');
-      if (msg.toLowerCase().includes('organization')) {
-        setErrors((e) => ({ ...e, organizationName: msg }));
-      } else if (msg.toLowerCase().includes('email')) {
-        setErrors((e) => ({ ...e, email: msg }));
-      } else {
-        setApiError(msg);
-      }
+      toast.show(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -57,12 +53,6 @@ export default function SignupPage() {
     <>
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h2>
       <p className="text-sm text-gray-500 mb-6">Start managing tasks with your team</p>
-
-      {apiError && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          {apiError}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input label="Full name *" id="name" placeholder="Jane Smith" autoComplete="name"

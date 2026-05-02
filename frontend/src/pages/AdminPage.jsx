@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import {
   fetchOrgMembers,
   createOrgUser,
@@ -17,6 +18,7 @@ import ErrorMessage from '../components/ui/ErrorMessage';
 export default function AdminPage() {
   const dispatch = useDispatch();
   const { user } = useAuth();
+  const toast = useToast();
   const { list: users, loading, error, actionError } = useSelector((state) => state.users);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -31,20 +33,27 @@ export default function AdminPage() {
     try {
       await dispatch(createOrgUser(formData)).unwrap();
       setShowCreateModal(false);
+      toast.show('Member added successfully', 'success');
     } catch {
-      // actionError is set in Redux state; modal stays open to show it
+      // actionError shown in the modal form — keep modal open
     } finally {
       setCreating(false);
     }
   }
 
   function handleRoleChange(userId, role) {
-    dispatch(changeUserRole({ userId, role }));
+    dispatch(changeUserRole({ userId, role }))
+      .unwrap()
+      .then(() => toast.show('Role updated successfully', 'success'))
+      .catch((err) => toast.show(typeof err === 'string' ? err : 'Failed to update role', 'error'));
   }
 
   function handleRemove(userId, userName) {
     if (!window.confirm(`Remove ${userName} from the organization? This action cannot be undone.`)) return;
-    dispatch(removeOrgUser(userId));
+    dispatch(removeOrgUser(userId))
+      .unwrap()
+      .then(() => toast.show(`${userName} removed from organization`, 'success'))
+      .catch((err) => toast.show(typeof err === 'string' ? err : 'Failed to remove member', 'error'));
   }
 
   const currentUserId = user?._id ?? user?.id;

@@ -8,7 +8,6 @@ import projectService from '../../services/projectService';
 const STATUS_OPTIONS = [
   { value: 'todo', label: 'To Do' },
   { value: 'in_progress', label: 'In Progress' },
-  { value: 'review', label: 'In Review' },
   { value: 'done', label: 'Done' },
 ];
 

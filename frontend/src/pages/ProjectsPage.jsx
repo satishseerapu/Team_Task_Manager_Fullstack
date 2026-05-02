@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProjects, createProject, deleteProject } from '../store/slices/projectsSlice';
 import { fetchTasksByProject } from '../store/slices/tasksSlice';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import ProjectCard from '../components/projects/ProjectCard';
 import ProjectForm from '../components/projects/ProjectForm';
 import Modal from '../components/ui/Modal';
@@ -13,6 +14,7 @@ import EmptyState from '../components/ui/EmptyState';
 export default function ProjectsPage() {
   const dispatch = useDispatch();
   const { isAdmin } = useAuth();
+  const toast = useToast();
   const projects = useSelector((state) => state.projects.list);
   const allProjectTasks = useSelector((state) => state.tasks.allProjectTasks);
   const fetchedProjectIds = useSelector((state) => state.tasks.fetchedProjectIds);
@@ -45,8 +47,9 @@ export default function ProjectsPage() {
     try {
       await dispatch(createProject(data)).unwrap();
       setShowCreate(false);
-    } catch {
-      // error in Redux state
+      toast.show('Project created successfully', 'success');
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to create project', 'error');
     } finally {
       setCreating(false);
     }
@@ -54,7 +57,12 @@ export default function ProjectsPage() {
 
   async function handleDelete(id) {
     if (!window.confirm('Delete this project? This cannot be undone.')) return;
-    dispatch(deleteProject(id));
+    try {
+      await dispatch(deleteProject(id)).unwrap();
+      toast.show('Project deleted', 'success');
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to delete project', 'error');
+    }
   }
 
   return (

@@ -18,7 +18,7 @@ export default function TasksPage() {
   const tasks = allProjectTasks;
   const loading = useSelector((state) => state.tasks.loading);
 
-  const [filters, setFilters] = useState({ search: '', status: '', projectId: '' });
+  const [filters, setFilters] = useState({ search: '', status: '', projectId: '', priority: '' });
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -45,6 +45,7 @@ export default function TasksPage() {
       if (filters.search && !t.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
       if (filters.status && t.status !== filters.status) return false;
       if (filters.projectId && (t.project?._id ?? t.project) !== filters.projectId) return false;
+      if (filters.priority && t.priority !== filters.priority) return false;
       return true;
     });
   }, [tasks, filters]);

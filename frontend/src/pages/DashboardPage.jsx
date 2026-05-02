@@ -5,17 +5,18 @@ import { fetchProjects } from '../store/slices/projectsSlice';
 import { fetchOrgStats } from '../store/slices/statsSlice';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import StatCard from '../components/ui/StatCard';
 import TaskStatusPieChart from '../components/dashboard/TaskStatusPieChart';
 import TasksPerProjectChart from '../components/dashboard/TasksPerProjectChart';
 import MyTasksList from '../components/dashboard/MyTasksList';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import ErrorMessage from '../components/ui/ErrorMessage';
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
   const { user, isAdmin } = useAuth();
-  const { stats, loading, error } = useDashboard();
+  const toast = useToast();
+  const { stats, loading } = useDashboard();
   const allProjectTasks = useSelector((state) => state.tasks.allProjectTasks);
   const fetchedProjectIds = useSelector((state) => state.tasks.fetchedProjectIds);
   const projects = useSelector((state) => state.projects.list);
@@ -23,15 +24,26 @@ export default function DashboardPage() {
   const orgStatsLoading = useSelector((state) => state.stats.loading);
 
   useEffect(() => {
-    if (!projects.length) dispatch(fetchProjects());
-    if (isAdmin) dispatch(fetchOrgStats());
+    const load = async () => {
+      if (!projects.length) {
+        try { await dispatch(fetchProjects()).unwrap(); }
+        catch (err) { toast.show(typeof err === 'string' ? err : 'Failed to load projects', 'error'); }
+      }
+      if (isAdmin) {
+        try { await dispatch(fetchOrgStats()).unwrap(); }
+        catch (err) { toast.show(typeof err === 'string' ? err : 'Failed to load org stats', 'error'); }
+      }
+    };
+    load();
   }, [dispatch, isAdmin, projects.length]);
 
   useEffect(() => {
     if (!projects.length) return;
     projects.forEach((project) => {
       if (!fetchedProjectIds.includes(project._id)) {
-        dispatch(fetchTasksByProject(project._id));
+        dispatch(fetchTasksByProject(project._id))
+          .unwrap()
+          .catch((err) => toast.show(typeof err === 'string' ? err : 'Failed to load tasks', 'error'));
       }
     });
   }, [dispatch, projects, fetchedProjectIds]);
@@ -44,8 +56,6 @@ export default function DashboardPage() {
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">Here's what's happening with your projects today.</p>
       </div>
-
-      {error && <ErrorMessage message={error} />}
 
       {/* Admin: org-wide overview */}
       {isAdmin && (
@@ -134,6 +144,35 @@ export default function DashboardPage() {
           </svg>}
         />
       </div>
+
+      {/* Admin: tasks per member table */}
+      {isAdmin && orgStats?.tasksPerUser?.length > 0 && (
+        <div className="card p-5">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Tasks per Member</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="pb-2 font-medium text-gray-500">Member</th>
+                  <th className="pb-2 font-medium text-gray-500 text-right">Tasks Assigned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orgStats.tasksPerUser.map((row) => (
+                  <tr key={String(row._id)} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2 text-gray-800">{row.name}</td>
+                    <td className="py-2 text-right">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-xs">
+                        {row.count}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="card p-5">

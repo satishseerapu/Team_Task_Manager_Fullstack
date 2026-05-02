@@ -38,7 +38,7 @@ const notifyUser = async (req, { userId, message, taskId, projectId }) => {
  */
 const createTask = async (req, res, next) => {
   try {
-    const { title, description, status, dueDate, projectId, assignedTo } = req.body;
+    const { title, description, status, dueDate, priority, projectId, assignedTo } = req.body;
 
     const project = await Project.findOne({
       _id: projectId,
@@ -70,6 +70,7 @@ const createTask = async (req, res, next) => {
       description,
       status,
       dueDate,
+      priority,
       project: projectId,
       assignedTo: assignedTo || null,
       createdBy: req.user._id,
@@ -246,7 +247,11 @@ const updateTaskStatus = async (req, res, next) => {
       return sendError(res, 404, 'Project not found.');
     }
 
-    if (req.user.role !== 'Admin' && !isMemberOfProject(project, req.user._id)) {
+    if (req.user.role === 'Member') {
+      if (String(task.assignedTo) !== String(req.user._id)) {
+        return sendError(res, 403, 'Members can only update status of their assigned tasks.');
+      }
+    } else if (!isMemberOfProject(project, req.user._id)) {
       return sendError(res, 403, 'You are not authorized to update the task status.');
     }
 
@@ -270,7 +275,7 @@ const updateTaskStatus = async (req, res, next) => {
  */
 const updateTask = async (req, res, next) => {
   try {
-    const { title, description, dueDate } = req.body;
+    const { title, description, dueDate, priority } = req.body;
 
     const task = await Task.findOne({
       _id: req.params.id,
@@ -285,8 +290,11 @@ const updateTask = async (req, res, next) => {
       organization: req.user.organization,
     });
 
-    if (
-      req.user.role !== 'Admin' &&
+    if (req.user.role === 'Member') {
+      if (String(task.assignedTo) !== String(req.user._id)) {
+        return sendError(res, 403, 'Members can only update their assigned tasks.');
+      }
+    } else if (
       project.createdBy.toString() !== req.user._id.toString() &&
       task.createdBy.toString() !== req.user._id.toString()
     ) {
@@ -296,6 +304,7 @@ const updateTask = async (req, res, next) => {
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (dueDate !== undefined) task.dueDate = dueDate;
+    if (priority !== undefined) task.priority = priority;
 
     await task.save();
 
@@ -328,8 +337,11 @@ const deleteTask = async (req, res, next) => {
       organization: req.user.organization,
     });
 
+    if (req.user.role === 'Member') {
+      return sendError(res, 403, 'Members cannot delete tasks.');
+    }
+
     if (
-      req.user.role !== 'Admin' &&
       project.createdBy.toString() !== req.user._id.toString() &&
       task.createdBy.toString() !== req.user._id.toString()
     ) {

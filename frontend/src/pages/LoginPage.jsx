@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import Input from '../components/ui/Input';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,6 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(form.email, form.password);
+      toast.show('Successfully logged in!', 'success');
       navigate('/dashboard');
     } catch (err) {
       setError(typeof err === 'string' ? err : (err?.message ?? 'Invalid credentials'));

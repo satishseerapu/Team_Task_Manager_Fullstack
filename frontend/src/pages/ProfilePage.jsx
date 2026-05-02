@@ -1,37 +1,34 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { updateProfileThunk, clearAuthError } from '../store/slices/authSlice';
 import Input from '../components/ui/Input';
 import Avatar from '../components/ui/Avatar';
 import { RoleBadge } from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import ErrorMessage from '../components/ui/ErrorMessage';
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
   const { user } = useAuth();
-  const authError = useSelector((state) => state.auth.error);
+  const toast = useToast();
 
   const [nameForm, setNameForm] = useState({ name: user?.name ?? '' });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [nameSaving, setNameSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [nameSuccess, setNameSuccess] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
   async function handleNameSubmit(e) {
     e.preventDefault();
     if (!nameForm.name.trim()) return;
     setNameSaving(true);
-    setNameSuccess('');
     dispatch(clearAuthError());
     try {
       await dispatch(updateProfileThunk({ name: nameForm.name })).unwrap();
-      setNameSuccess('Name updated successfully.');
-    } catch {
-      // error shown from authError
+      toast.show('Name updated successfully', 'success');
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to update name', 'error');
     } finally {
       setNameSaving(false);
     }
@@ -40,7 +37,6 @@ export default function ProfilePage() {
   async function handlePasswordSubmit(e) {
     e.preventDefault();
     setPasswordError('');
-    setPasswordSuccess('');
     dispatch(clearAuthError());
 
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
@@ -58,10 +54,10 @@ export default function ProfilePage() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       })).unwrap();
-      setPasswordSuccess('Password changed successfully.');
+      toast.show('Password changed successfully', 'success');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch {
-      // error shown from authError
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to change password', 'error');
     } finally {
       setPasswordSaving(false);
     }
@@ -89,8 +85,6 @@ export default function ProfilePage() {
       {/* Name form */}
       <div className="card p-5 space-y-4">
         <h2 className="text-base font-semibold text-gray-900">Display Name</h2>
-        {authError && nameSaving && <ErrorMessage message={authError} />}
-        {nameSuccess && <p className="text-sm text-green-600 font-medium">{nameSuccess}</p>}
         <form onSubmit={handleNameSubmit} className="space-y-4">
           <Input
             label="Full Name"
@@ -108,9 +102,7 @@ export default function ProfilePage() {
       {/* Password form */}
       <div className="card p-5 space-y-4">
         <h2 className="text-base font-semibold text-gray-900">Change Password</h2>
-        {authError && passwordSaving && <ErrorMessage message={authError} />}
-        {passwordError && <ErrorMessage message={passwordError} />}
-        {passwordSuccess && <p className="text-sm text-green-600 font-medium">{passwordSuccess}</p>}
+        {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
           <Input
             label="Current Password"

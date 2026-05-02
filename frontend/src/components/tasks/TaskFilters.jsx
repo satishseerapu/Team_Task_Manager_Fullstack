@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import Select from '../ui/Select';
-import { TASK_STATUS } from '../../utils/constants';
+import { TASK_STATUS, TASK_PRIORITY } from '../../utils/constants';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -8,6 +8,14 @@ const STATUS_OPTIONS = [
   { value: TASK_STATUS.IN_PROGRESS, label: 'In Progress' },
   { value: 'In Review', label: 'In Review' },
   { value: TASK_STATUS.DONE, label: 'Done' },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: '', label: 'All priorities' },
+  { value: TASK_PRIORITY.LOW, label: 'Low' },
+  { value: TASK_PRIORITY.MEDIUM, label: 'Medium' },
+  { value: TASK_PRIORITY.HIGH, label: 'High' },
+  { value: TASK_PRIORITY.CRITICAL, label: 'Critical' },
 ];
 
 export default function TaskFilters({ filters, onChange }) {
@@ -54,9 +62,17 @@ export default function TaskFilters({ filters, onChange }) {
         className="w-48"
       />
 
-      {(filters.search || filters.status || filters.projectId) && (
+      <Select
+        id="filter-priority"
+        options={PRIORITY_OPTIONS}
+        value={filters.priority ?? ''}
+        onChange={(e) => onChange({ ...filters, priority: e.target.value })}
+        className="w-36"
+      />
+
+      {(filters.search || filters.status || filters.projectId || filters.priority) && (
         <button
-          onClick={() => onChange({ search: '', status: '', projectId: '' })}
+          onClick={() => onChange({ search: '', status: '', projectId: '', priority: '' })}
           className="text-sm text-gray-500 hover:text-gray-700 underline"
         >
           Clear

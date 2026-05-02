@@ -27,7 +27,7 @@ const projectService = {
   },
 
   async removeMember(projectId, userId) {
-    const { data } = await api.delete(`/api/projects/${projectId}/members`, { data: { userId } });
+    const { data } = await api.delete(`/api/projects/${projectId}/members`, { data: { memberIds: [userId] } });
     return data.data;
   },
 };

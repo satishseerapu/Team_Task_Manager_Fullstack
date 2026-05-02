@@ -26,6 +26,10 @@ router.post(
       .isIn(['To Do', 'In Progress', 'Done'])
       .withMessage('Status must be To Do, In Progress, or Done'),
     body('dueDate').optional().isISO8601().withMessage('Invalid date format'),
+    body('priority')
+      .optional()
+      .isIn(['low', 'medium', 'high', 'critical'])
+      .withMessage('Priority must be low, medium, high, or critical'),
     body('projectId').isMongoId().withMessage('Valid project ID is required'),
     body('assignedTo').optional().isMongoId().withMessage('Invalid user ID'),
   ],
@@ -89,6 +93,10 @@ router.patch(
       .optional({ nullable: true })
       .isISO8601()
       .withMessage('Invalid date format'),
+    body('priority')
+      .optional()
+      .isIn(['low', 'medium', 'high', 'critical'])
+      .withMessage('Priority must be low, medium, high, or critical'),
   ],
   validate,
   updateTask

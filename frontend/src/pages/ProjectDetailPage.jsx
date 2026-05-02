@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchProjectById, addProjectMember, removeProjectMember } from '../store/slices/projectsSlice';
 import { fetchTasksByProject, createTask, updateTask, deleteTask, updateTaskStatus } from '../store/slices/tasksSlice';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import TaskCard from '../components/tasks/TaskCard';
 import TaskForm from '../components/tasks/TaskForm';
 import AddMemberForm from '../components/projects/AddMemberForm';
@@ -18,6 +19,7 @@ export default function ProjectDetailPage() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { isAdmin } = useAuth();
+  const toast = useToast();
 
   const project = useSelector((state) => state.projects.currentProject);
   const tasks = useSelector((state) => state.tasks.projectTasks);
@@ -39,33 +41,45 @@ export default function ProjectDetailPage() {
     try {
       if (editingTask) {
         await dispatch(updateTask({ id: editingTask._id, payload: data })).unwrap();
+        toast.show('Task updated successfully', 'success');
       } else {
         await dispatch(createTask({ ...data, project: id })).unwrap();
+        toast.show('Task created successfully', 'success');
       }
       setShowTaskForm(false);
       setEditingTask(null);
-    } catch {
-      // error in Redux state
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to save task', 'error');
     } finally {
       setSavingTask(false);
     }
   }
 
   async function handleStatusChange(taskId, status) {
-    dispatch(updateTaskStatus({ id: taskId, status }));
+    try {
+      await dispatch(updateTaskStatus({ id: taskId, status })).unwrap();
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to update status', 'error');
+    }
   }
 
   async function handleDeleteTask(taskId) {
     if (!window.confirm('Delete this task?')) return;
-    dispatch(deleteTask(taskId));
+    try {
+      await dispatch(deleteTask(taskId)).unwrap();
+      toast.show('Task deleted', 'success');
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to delete task', 'error');
+    }
   }
 
   async function handleAddMember(userId) {
     setAddingMember(true);
     try {
       await dispatch(addProjectMember({ projectId: id, userId })).unwrap();
-    } catch {
-      // ignore
+      toast.show('Member added to project', 'success');
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to add member', 'error');
     } finally {
       setAddingMember(false);
     }
@@ -73,7 +87,12 @@ export default function ProjectDetailPage() {
 
   async function handleRemoveMember(userId) {
     if (!window.confirm('Remove this member from the project?')) return;
-    dispatch(removeProjectMember({ projectId: id, userId }));
+    try {
+      await dispatch(removeProjectMember({ projectId: id, userId })).unwrap();
+      toast.show('Member removed from project', 'success');
+    } catch (err) {
+      toast.show(typeof err === 'string' ? err : 'Failed to remove member', 'error');
+    }
   }
 
   if (loading && !project) return <div className="flex items-center justify-center py-20"><LoadingSpinner size="lg" /></div>;
